@@ -140,6 +140,12 @@
                         fill([200, 0, 0]);
                         circle(j * width + width/2, i * height + height/2, 3 * width/8);
                     }
+
+                    if (piece == 2 || piece == 4){
+                        fill([], 0);
+                        stroke(0);
+                        circle(j * width + width/2, i * height + height/2, width/4);
+                    }
                 }
             }
         }
@@ -171,6 +177,7 @@
         validMove([x1, y1]){
             var possMoves = [[],[]]; 
             // case 1: move diagonally on dark squares.
+            
             // case 2: Remove your opponent’s checkers from the board by jumping them if your checker is diagonal to your opponent’s and there is an empty dark space to hop to.
             
             
@@ -185,6 +192,10 @@
                     let piece = this.board[x1][y1];
                     this.board[x1][y1] = 0;
                     this.board[x2][y2] = piece;
+                    //if on furthest row switch to king
+                    if (x2 === 0) {
+                        this.makeKing([x2, y2]);
+                    }
                 }
             }
             //if piece eats opponent's piece, check if another move can be made, then move
@@ -192,6 +203,19 @@
                 
             }
         }
+        
+        //changes regular piece to king piece
+        makeKing ([x, y]) {
+            //white to white king
+            if (this.board[x][y] = 1) {
+                this.board[x][y] = 2;
+            }
+            //red to red king
+            if (this.board[x][y] = 3) {
+                this.board[x][y] = 4;
+            }
+        }
+        
     }
 
     let game: Game;
@@ -212,16 +236,91 @@
 
 </script>
 
-<article>
-    <canvas style="width: 100vh; height: 50vh;" class="board" id="board"> </canvas>
-</article>
+<div class = "wrapper">
+    <nav class = "navbar">
+        <span style = "margin-right: auto; font-weight: bold;">
+            Online Checkers
+        </span>
+        <span>
+            Log In
+        </span>
+        <span>
+            Sign Up
+        </span>
+    </nav>
+    <article>
+        <canvas style="width: 100%; height: clamp(128px, 60%, 1000px);" class="board" id="board"> 
+            Your browser does not support HTML5. Please use a modern browser like Firefox, Chrome or Edge.
+        </canvas>
+        <aside class = "info-panel">
+            <div class = "time-panel">
+                30:00
+            </div>
+            <section class = "move-panel">
+                <div style = "font-weight: bold;">Moves</div>
+                <article>
+                    fkdlajflsa
+                </article>
+            </section>
+            <div class = "time-panel">
+                30:00
+            </div>
+        </aside>
+    </article>
+</div>
 
 <style lang="scss">
-    article {
+    .wrapper {
         width: 100vw;
         height: 100vh;
+
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+
+        font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .navbar {
+        background-color: #eee;
+        padding: 1rem;
+
+        display: flex;
+        justify-content: right;
+        
+        > span + span {
+            padding-left: 1rem;
+        }
+    }
+
+    article {
+        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
+
+        canvas {
+            box-shadow: 0 0 100px #ccc;
+        }
+    }
+
+    .info-panel {
+        display: flex;
+        flex-direction: column;
+        height: 60%;
+        width: clamp(100px, 20%, 400px);
+
+        margin-left: 1rem;
+
+        .time-panel {
+            padding: 1rem;
+            border: 1px solid black;
+        }
+
+        .move-panel {
+            padding: 1rem;
+            height: 100%;
+            border: 1px solid black;
+        }
     }
 </style>
