@@ -43,6 +43,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "sass": "^1.69.5"
+    "sass": "^1.69.5",
+    "socket.io-client": "^4.7.2"
   }
 }
