@@ -1,104 +1,114 @@
 <script lang="ts">
     import { browser } from '$app/environment'; 
     import { onMount } from "svelte";
-    let canvas: HTMLCanvasElement;
-    let ctx: CanvasRenderingContext2D;
-    let canvasWidth, canvasHeight;
     
+    let canvasWidth, canvasHeight;
 
-    function setHiPPICanvas(w: number, h: number) {
-        if (browser){
-            let ratio = window.devicePixelRatio;
-            canvas.width = w * ratio;
-            canvas.height = h * ratio;
-            canvas.style.width = w + "px";
-            canvas.style.height = h + "px";
-            ctx.scale(ratio, ratio);
+    class enhancedCanvas {
+        canvas: HTMLCanvasElement;
+        ctx: CanvasRenderingContext2D;
+        
+
+        constructor(canvas, ctx){
+            this.canvas = canvas;
+            this.ctx = ctx;
         }
-    }
 
-    // Canvas API Wrapper
-    function fill([r = 0, g = r, b = r], a = 255) {
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b}, ${a})`;
-    }
+        setHiPPICanvas(w: number, h: number) {
+            if (browser){
+                let ratio = window.devicePixelRatio;
+                canvas.width = w * ratio;
+                canvas.height = h * ratio;
+                canvas.style.width = w + "px";
+                canvas.style.height = h + "px";
+                ctx.scale(ratio, ratio);
+            }
+        }
 
-    function noStroke() {
-        ctx.strokeStyle = "rgb(0, 0, 0, 0)";
-    }
+        // Canvas API Wrapper
+        fill([r = 0, g = r, b = r], a = 255) {
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b}, ${a})`;
+        }
 
-    function stroke(r = 0, g = r, b = r, a = 255) {
-        ctx.strokeStyle = `rgb(${r}, ${g}, ${b}, ${a})`;
-    }
+        noStroke() {
+            ctx.strokeStyle = "rgb(0, 0, 0, 0)";
+        }
 
-    function rect(x: number, y: number, w: number, h: number) {
-        ctx.fillRect(x, y, w, h);
-        ctx.strokeRect(x, y, w, h);
-    }
+        stroke(r = 0, g = r, b = r, a = 255) {
+            ctx.strokeStyle = `rgb(${r}, ${g}, ${b}, ${a})`;
+        }
 
-    function background([r = 255, g = r, b = r]) {
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        fill([r, g, b]);
-        stroke(255);
-        rect(0, 0, canvasWidth, canvasHeight);
-    }
+        rect(x: number, y: number, w: number, h: number) {
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+        }
 
-    function circle(x: number, y: number, r: number) {
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-    }
+        background([r = 255, g = r, b = r]) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            fill([r, g, b]);
+            stroke(255);
+            rect(0, 0, canvasWidth, canvasHeight);
+        }
 
-    function ellipse(x, y, w, h) {
-        ctx.ellipse(x, y, w / 2, h / 2, 0, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-    }
+        circle(x: number, y: number, r: number) {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+        }
 
-    function triangle(x1, y1, x2, y2, x3, y3) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.lineTo(x3, y3);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-    }
+        ellipse(x, y, w, h) {
+            ctx.ellipse(x, y, w / 2, h / 2, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
 
-    function quad(x1, y1, x2, y2, x3, y3, x4, y4) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.lineTo(x3, y3);
-        ctx.lineTo(x4, y4);
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-    }
+        triangle(x1, y1, x2, y2, x3, y3) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y3);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+        }
 
-    function textSize(n) {
-        ctx.font = `${n}px sans-serif`;
-    }
+        quad(x1, y1, x2, y2, x3, y3, x4, y4) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y3);
+            ctx.lineTo(x4, y4);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+        }
 
-    function text(t, x, y) {
-        ctx.fillText(t, x, y);
-    }
+        textSize(n) {
+            ctx.font = `${n}px sans-serif`;
+        }
 
-    function translate(x, y) {
-        ctx.translate(x, y);
-    }
+        text(t, x, y) {
+            ctx.fillText(t, x, y);
+        }
 
-    function resetMatrix() {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        translate(x, y) {
+            ctx.translate(x, y);
+        }
+
+        resetMatrix() {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
     }
 
     class Game {
         board: number[][];
         ctx: CanvasRenderingContext2D;
+        playWhite: boolean;
 
-        constructor(ctx){
-            // 0 is empty, 1 is white, 2 is white king, 3 is red, 4, is red king
+        constructor(ctx, playWhite){
+            // 0 is empty, 1 is white, 2 is white king, 3 is red, 4 is red king
             this.board = [
                 [0, 1, 0, 1, 0, 1, 0, 1],
                 [1, 0, 1, 0, 1, 0, 1, 0],
@@ -111,6 +121,7 @@
             ];
 
             this.ctx = ctx;
+            this.playWhite = playWhite;
         }
         
         draw(){
@@ -172,48 +183,74 @@
 
             return rotatedArray;
         }
+        
+        // check if you can take any pieces (then you must)
+        canTake(){
+            let yourPieces
+            if (this.playWhite){
+
+            }
+        }
 
         // return array of valid positions where it can move
-        validMove([x1, y1]){
-            var possMoves = [[],[]]; 
-            // case 1: move diagonally on dark squares.
-            
-            if (this.board[x1-1][y1-1] === 0) {
-                //add to array
+        validMove([x, y]){
+            let possMoves = [[]]; 
+            //case 1: move diagonally forward
+            //*check if spot exists on board
+            if (this.board[x-1][y-1] === 0) {
+                //add left diagonal to array
+                possMoves.push([x-1, y-1]);
             }
-            // case 2: Remove your opponent’s checkers from the board by jumping them if your checker is diagonal to your opponent’s and there is an empty dark space to hop to.
-            
+            if (this.board[x-1][y+1] === 0) {
+                //add right diagonal to array
+                possMoves.push([x-1, y+1]);
+            }
+            //case 2: piece is king, move diagonally backward
+            if (this.board[x][y] === 2 || this.board[x][y] === 4) {
+                if (this.board[x+1][y-1] === 0) {
+                    //add left back diagonal to array
+                    possMoves.push([x+1, y-1]);
+                }
+                if (this.board[x+1][y+1] === 0) {
+                    //add right back diagonal to array
+                    possMoves.push([x+1, y+1]);
+                }
+            }
+            //case 2: Remove your opponent’s checkers from the board if opponent’s checker is diagonal and there is an empty space to go
+            if () { //if diagonal is opponent's piece and the space after is open
+                
+            }
             
             return possMoves;
         }
 
         // attempts to move the piece at first coordinate to second
         move([x1, y1], [x2, y2]){
-            //check if move is valid, move piece if valid, get rid of any eaten piece
+            // check if move is valid, move piece if valid
             for (let i = 0; i < this.validMove.length; i++) {
                 if (this.validMove[i][0] === x2 && this.validMove[i][1] === y2) {
                     let piece = this.board[x1][y1];
                     this.board[x1][y1] = 0;
                     this.board[x2][y2] = piece;
-                    //if on furthest row switch to king
+                    // if on furthest row switch to king
                     if (x2 === 0) {
                         this.makeKing([x2, y2]);
                     }
                 }
             }
-            //if piece eats opponent's piece, check if another move can be made, then move
+            // if piece eats opponent's piece, check if another move can be made, then move
             if (true) {
                 
             }
         }
         
-        //changes regular piece to king piece
+        // changes regular piece to king piece
         makeKing ([x, y]) {
             //white to white king
             if (this.board[x][y] = 1) {
                 this.board[x][y] = 2;
             }
-            //red to red king
+            // red to red king
             if (this.board[x][y] = 3) {
                 this.board[x][y] = 4;
             }
@@ -232,70 +269,31 @@
 
         game = new Game(ctx);
         game.draw();
-        window.requestAnimationFrame(()=> {
-            
-        });
     });
 
 </script>
 
-<div class = "wrapper">
-    <nav class = "navbar">
-        <span style = "margin-right: auto; font-weight: bold;">
-            Online Checkers
-        </span>
-        <span>
-            Log In
-        </span>
-        <span>
-            Sign Up
-        </span>
-    </nav>
-    <article>
-        <canvas style="width: 100%; height: clamp(128px, 60%, 1000px);" class="board" id="board"> 
-            Your browser does not support HTML5. Please use a modern browser like Firefox, Chrome or Edge.
-        </canvas>
-        <aside class = "info-panel">
-            <div class = "time-panel">
-                30:00
-            </div>
-            <section class = "move-panel">
-                <div style = "font-weight: bold;">Moves</div>
-                <article>
-                    fkdlajflsa
-                </article>
-            </section>
-            <div class = "time-panel">
-                30:00
-            </div>
-        </aside>
-    </article>
-</div>
+<article>
+    <canvas style="width: 100%; height: clamp(128px, 60%, 1000px);" class="board" id="board"> 
+        Your browser does not support HTML5. Please use a modern browser like Firefox, Chrome or Edge.
+    </canvas>
+    <aside class = "info-panel">
+        <div class = "time-panel">
+            30:00
+        </div>
+        <section class = "move-panel">
+            <div style = "font-weight: bold;">Moves</div>
+            <article>
+                fkdlajflsa
+            </article>
+        </section>
+        <div class = "time-panel">
+            30:00
+        </div>
+    </aside>
+</article>
 
 <style lang="scss">
-    .wrapper {
-        width: 100vw;
-        height: 100vh;
-
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-
-        font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .navbar {
-        background-color: #eee;
-        padding: 1rem;
-
-        display: flex;
-        justify-content: right;
-        
-        > span + span {
-            padding-left: 1rem;
-        }
-    }
-
     article {
         height: 100%;
         display: flex;
