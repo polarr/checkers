@@ -1,56 +1,61 @@
-<script lang="ts">
-    import type { Socket } from "socket.io-client";
+<script>
+    import io from 'socket.io-client';
+    import Home from './Home.svelte';
+    import Game from './Game.svelte';
 
-    export let socket: Socket;
+    // Open WebSocket connection with the server to communicate moves
+    const socket = io('http://localhost:3000');
+    let socketId;
 
-    let time: string;
-    let code: string;
-    const createGame = () => {
-        socket.emit("create-room", {time: parseInt(time)});
-    };
+    socket.on("connect", ()=> {
+        console.log(socket.id);
+        socketId = socket.id;
+    });
 
-    const joinGame = () => {
-        socket.emit("join-room", {code});
-    };
+    socket.on("init-game", ()=> {
+        inGame = true;
+    });
+
+    let inGame = false;
 </script>
 
-<article>
-    <h1>Welcome to Online Checkers</h1>
-    <div class = "create-join-wrapper">
-        <div>
-            <input bind:value={time} placeholder="Time Control (minutes)">
-            <button on:click={createGame}>Create a game</button>
-        </div>
-        <div>
-            <input bind:value={code} placeholder="Code">
-            <button on:click={joinGame}>Join with code</button>
-        </div>
-    </div>
-    
-</article>
+<div class = "wrapper">
+    <nav class = "navbar">
+        <span style = "margin-right: auto; font-weight: bold;">
+            Online Checkers
+        </span>
+        <span>
+            {socketId ? "User ID: " + socketId : "Not Connected"}
+        </span>
+    </nav>
+    {#if !inGame}
+        <Home {socket} />
+    {:else}
+        <Game {socket} />
+    {/if}
+</div>
 
 <style lang="scss">
-    article {
-        height: 100%;
+    .wrapper {
+        width: 100vw;
+        height: 100vh;
+
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        align-items: stretch;
 
-        .create-join-wrapper {
-            display: flex;
-            justify-content: space-evenly;
+        font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-            > div {
-                display: flex;
-                flex-direction: column;
-                padding: 1rem;
-                border: 1px solid black;
+    .navbar {
+        background-color: #eee;
+        padding: 1rem;
 
-                button {
-                    margin-top: 1rem;
-                }
-            }
+        display: flex;
+        justify-content: right;
+        
+        > span + span {
+            padding-left: 1rem;
         }
     }
 </style>
