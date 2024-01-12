@@ -186,6 +186,7 @@
 
         /**
          * Rotate the board 180 degrees
+         * @param originalArray
          * @returns rotated 2d array of this.board
         */
         rotateBoard(originalArray: number[][]){
@@ -244,115 +245,35 @@
          * @return array of all possible spots to move to
         */
         validMove([x, y]){
-            let possMoves = [[]]; 
-            //case 1a: move diagonally forward, check if spot exists on board, add move to array
+            let possMoves: number[][] = [];
+            // case 1a: move diagonally forward, check if spot exists on board, add move to array
             if (x > 0 && x < this.board.length) {
                 if (y > 0 && y < this.board[0].length) {
-                    if (this.board[x-1][y-1] === 0) {
-                        //add left diagonal to array
-                        possMoves.push([x-1, y-1]);
+                    if (this.board[x - 1][y - 1] === 0) {
+                        // add left diagonal to array
+                        possMoves.push([x - 1, y - 1]);
                     }
                 }
                 if (y >= 0 && y < this.board[0].length - 2) {
-                    if (this.board[x-1][y+1] === 0) {
-                        //add right diagonal to array
-                        possMoves.push([x-1, y+1]);
+                    if (this.board[x - 1][y + 1] === 0) {
+                        // add right diagonal to array
+                        possMoves.push([x - 1, y + 1]);
                     }
                 }
             }
-            //case 1b: piece is king so can move diagonally backward, check if space is on board, add move to array
+            // case 1b: piece is king so can move diagonally backward, check if space is on board, add move to array
             if (this.board[x][y] === 2 || this.board[x][y] === 4) {
                 if (x >= 0 && x < this.board.length - 2){
                     if (y > 0 && y < this.board[0].length){
-                        if (this.board[x+1][y-1] === 0) {
-                            //add left back diagonal to array
-                            possMoves.push([x+1, y-1]);
+                        if (this.board[x + 1][y - 1] === 0) {
+                            // add left back diagonal to array
+                            possMoves.push([x + 1, y - 1]);
                         }
                     }
                     if (y >= 0 && y < this.board[0].length - 2) {
-                        if (this.board[x+1][y+1] === 0) {
-                            //add right back diagonal to array
-                            possMoves.push([x+1, y+1]);
-                        }
-                    }
-                }
-            }
-            //case 2a: Remove your opponent’s checkers from the board if opponent’s checker is diagonal and there is an empty space to go
-            if (this.canTake() === true) { //if canTake returns true, must move piece and remove opponent's piece
-                //if it's white eating red
-                if (this.board[x][y] === 1 || this.board[x][y] === 2) {
-                    if (this.board[x-1][y-1] === 3 || this.board[x-1][y-1] === 4 || this.board[x-1][y+1] === 3 || this.board[x-1][y+1] === 4){
-                        if (x > 1 && x < this.board.length) {
-                            if (y > 1 && y < this.board[0].length) {
-                                if (this.board[x-2][y-2] === 0) {
-                                    //add left diagonal to array
-                                    possMoves.push([x-2][y-2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 2) {
-                                if (this.board[x-2][y+2] === 0) {
-                                    //add right diagonal to array
-                                    possMoves.push([x-2, y+2]);
-                                }
-                            }
-                        }
-                    }
-                }
-                //if it's red eating white
-                if (this.board[x][y] === 3 || this.board[x][y] === 4) {
-                    if (this.board[x-1][y-1] === 1 || this.board[x-1][y-1] === 2){
-                        if (x > 1 && x < this.board.length) {
-                            if (y > 1 && y < this.board[0].length) {
-                                if (this.board[x-2][y-2] === 0) {
-                                    //add left diagonal to array
-                                    possMoves.push([x-2][y-2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 2) {
-                                if (this.board[x-2][y+2] === 0) {
-                                    //add right diagonal to array
-                                    possMoves.push([x-2, y+2]);
-                                }
-                            }
-                        }
-                    }
-                }
-                //case 2b: king piece has backwards diagonal kill option
-                //if it's white king eating red
-                if (this.board[x][y] === 2) {
-                    if (this.board[x+1][y-1] === 3 || this.board[x+1][y-1] === 4 || this.board[x+1][y+1] === 3 || this.board[x+1][y+1] === 4){
-                        if (x >= 0 && x < this.board.length - 3){
-                            if (y > 1 && y < this.board[0].length){
-                                if (this.board[x+2][y-2] === 0) {
-                                    //add left back diagonal to array
-                                    possMoves.push([x+2, y-2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 3) {
-                                if (this.board[x+2][y+2] === 0) {
-                                    //add right back diagonal to array
-                                    possMoves.push([x+2, y+2]);
-                                }
-                            }
-                        }
-                    }
-                }
-                //if it's red king eating white
-                if (this.board[x][y] === 4) {
-                    if (this.board[x+1][y-1] === 1 || this.board[x+1][y-1] === 2 || this.board[x+1][y+1] === 1 || this.board[x+1][y+1] === 2){
-                        if (x >= 0 && x < this.board.length - 3){
-                            if (y > 1 && y < this.board[0].length){
-                                if (this.board[x+2][y-2] === 0) {
-                                    //add left back diagonal to array
-                                    possMoves.push([x+2, y-2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 3) {
-                                if (this.board[x+2][y+2] === 0) {
-                                    //add right back diagonal to array
-                                    possMoves.push([x+2, y+2]);
-                                }
-                            }
+                        if (this.board[x + 1][y + 1] === 0) {
+                            // add right back diagonal to array
+                            possMoves.push([x + 1, y + 1]);
                         }
                     }
                 }
@@ -361,26 +282,152 @@
         }
 
         /**
+         * return array of valid positions where it can move after eating
+         * @param player's piece
+         * @return array of all possible spots to move to after eating
+        */
+        validEat([x,y]){
+            let possEats: number[][] = []; 
+            // case 2a: Remove your opponent’s checkers from the board if opponent’s checker is diagonal and there is an empty space to go
+            if (this.canTake()) { // if canTake returns true, must move piece and remove opponent's piece
+                // if it's white eating red
+                if (this.board[x][y] === 1 || this.board[x][y] === 2) {
+                    if (this.board[x - 1][y - 1] === 3 || this.board[x - 1][y - 1] === 4 || this.board[x - 1][y + 1] === 3 || this.board[x - 1][y + 1] === 4){
+                        if (x > 1 && x < this.board.length) {
+                            if (y > 1 && y < this.board[0].length) {
+                                if (this.board[x - 2][y - 2] === 0) {
+                                    // add left diagonal to array
+                                    possEats.push([x - 2, y - 2]);
+                                }
+                            }
+                            if (y >= 0 && y < this.board[0].length - 2) {
+                                if (this.board[x - 2][y + 2] === 0) {
+                                    // add right diagonal to array
+                                    possEats.push([x - 2, y + 2]);
+                                }
+                            }
+                        }
+                    }
+                }
+                // if it's red eating white
+                if (this.board[x][y] === 3 || this.board[x][y] === 4) {
+                    if (this.board[x - 1][y - 1] === 1 || this.board[x - 1][y - 1] === 2){
+                        if (x > 1 && x < this.board.length) {
+                            if (y > 1 && y < this.board[0].length) {
+                                if (this.board[x - 2][y - 2] === 0) {
+                                    // add left diagonal to array
+                                    possEats.push([x - 2, y - 2]);
+                                }
+                            }
+                            if (y >= 0 && y < this.board[0].length - 2) {
+                                if (this.board[x - 2][y + 2] === 0) {
+                                    // add right diagonal to array
+                                    possEats.push([x - 2, y + 2]);
+                                }
+                            }
+                        }
+                    }
+                }
+                // case 2b: king piece has backwards diagonal kill option
+                // if it's white king eating red
+                if (this.board[x][y] === 2) {
+                    if (this.board[x + 1][y - 1] === 3 || this.board[x + 1][y - 1] === 4 || this.board[x + 1][y +1 ] === 3 || this.board[x + 1][y + 1] === 4){
+                        if (x >= 0 && x < this.board.length - 3){
+                            if (y > 1 && y < this.board[0].length){
+                                if (this.board[x + 2][y - 2] === 0) {
+                                    // add left back diagonal to array
+                                    possEats.push([x + 2, y - 2]);
+                                }
+                            }
+                            if (y >= 0 && y < this.board[0].length - 3) {
+                                if (this.board[x + 2][y +2 ] === 0) {
+                                    // add right back diagonal to array
+                                    possEats.push([x + 2, y + 2]);
+                                }
+                            }
+                        }
+                    }
+                }
+                // if it's red king eating white
+                if (this.board[x][y] === 4) {
+                    if (this.board[x + 1][y - 1] === 1 || this.board[x + 1][y - 1] === 2 || this.board[x + 1][y + 1] === 1 || this.board[x + 1][y + 1] === 2){
+                        if (x >= 0 && x < this.board.length - 3){
+                            if (y > 1 && y < this.board[0].length){
+                                if (this.board[x + 2][y - 2] === 0) {
+                                    // add left back diagonal to array
+                                    possEats.push([x + 2, y - 2]);
+                                }
+                            }
+                            if (y >= 0 && y < this.board[0].length - 3) {
+                                if (this.board[x + 2][y + 2] === 0) {
+                                    // add right back diagonal to array
+                                    possEats.push([x + 2, y + 2]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return possEats;
+        }
+
+        /**
          * Move the piece selected to spot selected
+         * 
+         * If there is an option to eat, the player must eat, if more eating is possible it must make the move(s)
+         * Turn ends if piece is turned into a king
+         * 
          * @param player's selected piece
          * @param player's selected spot to move to
          */ 
         move([x1, y1], [x2, y2]){
-            //check if move is valid, move piece if valid
-            for (let i = 0; i < this.validMove.length; i++) {
-                if (this.validMove[i][0] === x2 && this.validMove[i][1] === y2) {
-                    let piece = this.board[x1][y1];
-                    this.board[x1][y1] = 0;
-                    this.board[x2][y2] = piece;
-                    // if on furthest row switch to king
-                    if (x2 === 0) {
-                        this.makeKing([x2, y2]);
+            // if piece eats opponent's piece, check if another move can be made, then move
+            if (this.canTake()) {
+                for (let i = 0; i < this.validEat.length; i++) {
+                    if (this.validEat[i][0] === x2 && this.validEat[i][1] === y2) {
+                        let piece = this.board[x1][y1];
+                        this.board[x1][y1] = 0;
+                        if (x1 - x2 > 0) {
+                            if (y1 - y2 > 0) {
+                                this.board[x1 - 1][y1 - 1] = 0;
+                            }
+                            else {
+                                this.board[x1 - 1][y1 + 1] = 0;
+                            }
+                        }
+                        if (x1 - x2 < 0) {
+                            if (y1 - y2 > 0) {
+                                this.board[x1 + 1][y1 - 1] = 0;
+                            }
+                            else {
+                                this.board[x1 + 1][y1 + 1] = 0;
+                            }
+                        } 
+                        this.board[x2][y2] = piece;
+                        // if on furthest row switch to king
+                        if (x2 === 0) {
+                            this.makeKing([x2, y2]);
+                            return;
+                        }
+                        // see if another jump is possible then move
+                        
                     }
                 }
             }
-            //if piece eats opponent's piece, check if another move can be made, then move
-            if (true) {
-                
+            /// check if move is valid, move piece if valid
+            else {
+                for (let i = 0; i < this.validMove.length; i++) {
+                    if (this.validMove[i][0] === x2 && this.validMove[i][1] === y2) {
+                        let piece = this.board[x1][y1];
+                        this.board[x1][y1] = 0;
+                        this.board[x2][y2] = piece;
+                        // if on furthest row switch to king
+                        if (x2 === 0) {
+                            this.makeKing([x2, y2]);
+                            return;
+                        }
+                    }
+                }
             }
         }
         
@@ -388,18 +435,27 @@
          * Changes regular piece to king piece
          * @param player's piece to switch
          */ 
-        makeKing ([x, y]) {
-            // could say if 1 or 3, then += 1
+        makeKing([x, y]) {
             if (this.board[x][y] == 1 || this.board[x][y] == 3) {
                 this.board[x][y] += 1
             }
-            //white to white king
-            if (this.board[x][y] === 1) {
-                this.board[x][y] = 2;
-            }
-            // red to red king
-            if (this.board[x][y] === 3) {
-                this.board[x][y] = 4;
+        }
+
+        /**
+         * Checks if someone has won the game
+         */ 
+        gameOver() {
+            for (let row = 0; row < this.board.length; row++) {
+                for (let col = 0; col < this.board[0].length; col++) {
+                    // no white pieces left
+                    if (this.board[row][col] !== 1 && this.board[row][col] !== 2) {
+                        // END GAME, red has won
+                    }
+                    // no red pieces left
+                    else if (this.board[row][col] !== 3 && this.board[row][col] !== 4) {
+                        // END GAME, white has won
+                    }
+                }
             }
         }
     }
