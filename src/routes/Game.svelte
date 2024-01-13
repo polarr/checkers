@@ -139,6 +139,9 @@
             this.playWhite = playWhite;
         }
         
+        whitePlayer = 1;
+        redPlayer = 3;
+
         /**
          * Render the board within the canvas
         */
@@ -380,7 +383,7 @@
          * @param player's selected piece
          * @param player's selected spot to move to
          */ 
-        move([x1, y1], [x2, y2]){
+        move([x1, y1], [x2, y2]) {
             // if piece eats opponent's piece, check if another move can be made, then move
             if (this.canTake()) {
                 for (let i = 0; i < this.validEat.length; i++) {
@@ -409,8 +412,13 @@
                             this.makeKing([x2, y2]);
                             return;
                         }
-                        // see if another jump is possible then move
-                        
+                        // see if another jump is possible then move using recursion
+                        let possJumps = this.validEat([x2, y2]);
+                        if (possJumps.length > 0) {
+                            for (let i = 0; i < possJumps.length; i++) {
+                                this.move([x2, y2], this.validEat[i]);
+                            }
+                        }
                     }
                 }
             }
@@ -427,6 +435,9 @@
                             return;
                         }
                     }
+                    else {
+                        console.log("Move not valid. Please select another.");
+                    }
                 }
             }
         }
@@ -442,20 +453,33 @@
         }
 
         /**
-         * Checks if someone has won the game
+         * Checks if someone has won the game and then ends the game
          */ 
-        gameOver() {
+        findWinner() {
+            let winner;
             for (let row = 0; row < this.board.length; row++) {
                 for (let col = 0; col < this.board[0].length; col++) {
                     // no white pieces left
                     if (this.board[row][col] !== 1 && this.board[row][col] !== 2) {
                         // END GAME, red has won
+                        winner = this.redPlayer;
+                        this.gameOver(winner);
                     }
                     // no red pieces left
                     else if (this.board[row][col] !== 3 && this.board[row][col] !== 4) {
                         // END GAME, white has won
+                        winner = this.whitePlayer;
+                        this.gameOver(winner);
                     }
                 }
+            }
+        }
+        gameOver(isWinner) {
+            if(isWinner) {
+                console.log("Congratulations! You won!");
+            }
+            else {
+                console.log("Game Over. You lost.");
             }
         }
     }
