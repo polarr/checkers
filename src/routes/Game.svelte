@@ -26,7 +26,12 @@
         getHeight(){
             return this.canvasHeight;
         }
-
+        getX(){
+            return this.canvas.getBoundingClientRect().x;
+        }
+        getY(){
+            return this.canvas.getBoundingClientRect().y;
+        }
         setHiPPICanvas(w: number, h: number) {
             this.canvasWidth = w;
             this.canvasHeight = h;
@@ -121,8 +126,9 @@
         board: number[][];
         canvas: EnhancedCanvas;
         playWhite: boolean;
+        code: string;
 
-        constructor(canvas: EnhancedCanvas, playWhite: boolean){
+        constructor(canvas: EnhancedCanvas, playWhite: boolean, code: string){
             // 0 is empty, 1 is white, 2 is white king, 3 is red, 4 is red king
             this.board = [
                 [0, 1, 0, 1, 0, 1, 0, 1],
@@ -137,15 +143,61 @@
 
             this.canvas = canvas;
             this.playWhite = playWhite;
+            this.code = code;
         }
         
         whitePlayer = 1;
         redPlayer = 3;
 
+        clickedPiece: number[] = [];
+
+        /**
+         * Check if the board actually has a piece of the given color on [x, y]
+         * @param white
+         * @param board
+         * @param [x, y]
+         */
+        validPiece(white = this.playWhite, board = this.board, [x, y]){
+            if (white){
+                return board[y][x] in [1, 2];
+            }
+
+            return board[y][x] in [3, 4];
+        }
+
+        /**
+         * Handle clicking a piece/cell on the canvas
+         * @param e - MouseEvent of the click event
+         */
+        click(e: MouseEvent){
+            const width = this.canvas.getWidth()/8, height = this.canvas.getHeight()/8;
+            let coordX = Math.floor((e.clientX - this.canvas.getX()) / width);
+            let coordY = Math.floor((e.clientY - this.canvas.getY()) / height);
+            console.log(e.clientX, e.clientY, this.canvas.getX(), this.canvas.getY(), coordX, coordY);
+            
+            if (!this.clickedPiece?.length){
+                let bd = this.board;
+                if (this.playWhite){
+                    bd = this.rotateBoard(bd);
+                }
+                if (this.validPiece(this.playWhite, bd, [coordX, coordY])){
+                    this.clickedPiece = [coordX, coordY];
+                    this.draw(this.clickedPiece);
+                }
+                return;
+            } 
+
+            socket.emit('move', {
+                code: this.code,
+                from: this.clickedPiece,
+                to: [coordX, coordY]
+            });
+        }
         /**
          * Render the board within the canvas
+         * @param (Optional) [x, y] - Clicked coordinate
         */
-        draw(){
+        draw([coordX, coordY]:number[] = []){
             this.canvas.background([255]);
             this.canvas.noStroke();
             const width = this.canvas.getWidth()/8, height = this.canvas.getHeight()/8;
@@ -154,6 +206,18 @@
             if (this.playWhite){
                 bd = this.rotateBoard(bd);
             }
+
+            let moveList: number[][] = [];
+
+            if (this.playWhite){
+                if (this.canTake()){
+                    moveList = this.validEat([coordX, coordY]);
+                } else {
+                    moveList = this.validMove([coordX, coordY]);
+                }
+            }
+
+            console.log(moveList);
 
             // loops over each board cell
             for (let i = 0; i < bd.length; i++){
@@ -166,6 +230,10 @@
                     this.canvas.fill(color);
                     // draw the cell rectangle
                     this.canvas.rect(j * width, i * height, width, height);
+                    if ([j, i] in moveList){
+                        this.canvas.fill([255, 255, 255]);
+                        this.canvas.circle(j * width + width/2, i * height + height/2, width/8);
+                    }
 
                     // see if there is a piece on the cell
                     let piece = bd[i][j];
@@ -186,7 +254,6 @@
                 }
             }
         }
-
         /**
          * Rotate the board 180 degrees
          * @param originalArray
@@ -220,8 +287,8 @@
         */
         canTake(){
             // loop throgh board
-            // check if x +- 1, y - 1 contains opponent piece
-            // and if x +- 2, y - 2 is 0
+            // check if row - 1, col +- 1 contains opponent piece
+            // and if row - 2, col +- 2 is 0
             // if true, return true
             
             let opponent = 0
@@ -230,11 +297,20 @@
             } else {
                 opponent = 1
             }
-            for (let i = 0; i < this.board.length; i++) {
-                for (let j = 0; j < this.board[0].length; j++) {
-                    if (this.board[i + 1][j - 1] || this.board[i - 1][j - 1] == opponent) {
-                        if (this.board[i + 2][j - 2] || this.board[i - 2][j - 2] == 0) {
-                            return true
+            for (let row = 0; row < this.board.length; row++) {
+                for (let col = 0; col < this.board[0].length; col++) {
+                    if (this.board[row][col] == 1 || this.board[row][col] == 3) {
+                        if (this.board[row - 1][col - 1] || this.board[row - 1][col + 1] == opponent) {
+                            if (this.board[row - 2][col - 2] || this.board[row - 2][col + 2] == 0) {
+                                return true
+                            }
+                        }
+                    }
+                    if (this.board[row][col] == 2 || this.board[row][col] == 4) {
+                        if (this.board[row + 1][col - 1] || this.board[row + 1][col + 1] == opponent) {
+                            if (this.board[row + 2][col - 2] || this.board[row + 2][col + 2] == 0) {
+                                return true
+                            }
                         }
                     }
                 }
@@ -410,13 +486,17 @@
                         // if on furthest row switch to king
                         if (x2 === 0) {
                             this.makeKing([x2, y2]);
-                            return;
+                            return; //end move
                         }
                         // see if another jump is possible then move using recursion
                         let possJumps = this.validEat([x2, y2]);
-                        if (possJumps.length > 0) {
-                            for (let i = 0; i < possJumps.length; i++) {
-                                this.move([x2, y2], this.validEat[i]);
+                        if (possJumps.length > 0) { //possible lengths of 0 to 3
+                            for (let j = 0; j < possJumps.length; j++) {
+                                let x3;
+                                let y3;
+                                if (this.validEat[j][0] === x3 && this.validEat[j][1] === y3) {
+                                    this.move([x2, y2], [x3, y3]);
+                                }
                             }
                         }
                     }
@@ -432,7 +512,7 @@
                         // if on furthest row switch to king
                         if (x2 === 0) {
                             this.makeKing([x2, y2]);
-                            return;
+                            return; //end move
                         }
                     }
                     else {
@@ -501,14 +581,25 @@
             let canvasWidth = Math.min(canvas.clientWidth, canvas.clientHeight), canvasHeight = Math.min(canvas.clientWidth, canvas.clientHeight);
             enhancedCanvas.setHiPPICanvas(canvasWidth, canvasHeight);
 
-            game = new Game(enhancedCanvas, playWhite);
+            game = new Game(enhancedCanvas, playWhite, code);
             game.draw();
         }
     });
+
+    socket.on("update-move", ({})=> {
+
+    });
+
+    const handleClick = (e)=> {
+        console.log(e);
+        if (browser){
+            game.click(e);
+        }
+    }
 </script>
 
 <article>
-    <canvas style="width: 100%; height: clamp(128px, 60%, 1000px);" class="board" id="board"> 
+    <canvas style="width: 100%; height: clamp(128px, 60%, 1000px);" class="board" id="board" on:click={handleClick}> 
         Your browser does not support HTML5. Please use a modern browser like Firefox, Chrome or Edge.
     </canvas>
     <aside class = "info-panel">
