@@ -77,60 +77,12 @@
             this.ctx.stroke();
             this.ctx.closePath();
         }
-
-        ellipse(x: number, y: number, w: number, h: number) {
-            this.ctx.ellipse(x, y, w / 2, h / 2, 0, 0, 2 * Math.PI);
-            this.ctx.fill();
-            this.ctx.stroke();
-        }
-
-        triangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x1, y1);
-            this.ctx.lineTo(x2, y2);
-            this.ctx.lineTo(x3, y3);
-            this.ctx.fill();
-            this.ctx.stroke();
-            this.ctx.closePath();
-        }
-
-        quad(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x1, y1);
-            this.ctx.lineTo(x2, y2);
-            this.ctx.lineTo(x3, y3);
-            this.ctx.lineTo(x4, y4);
-            this.ctx.fill();
-            this.ctx.stroke();
-            this.ctx.closePath();
-        }
-
-        textSize(n: number) {
-            this.ctx.font = `${n}px sans-serif`;
-        }
-
-        text(t: number, x: number, y: number) {
-            this.ctx.fillText(t, x, y);
-        }
-
-        translate(x: number, y: number) {
-            this.ctx.translate(x, y);
-        }
-
-        resetMatrix() {
-            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-        }
     }
 
-    class Game {
+    class Checkers {
         board: number[][];
-        canvas: EnhancedCanvas;
-        playWhite: boolean;
-        code: string;
-
-        constructor(canvas: EnhancedCanvas, playWhite: boolean, code: string){
-            // 0 is empty, 1 is white, 2 is white king, 3 is red, 4 is red king
-            this.board = [
+        constructor(board?: number[][]){
+            this.board = board ?? [
                 [0, 1, 0, 1, 0, 1, 0, 1],
                 [1, 0, 1, 0, 1, 0, 1, 0],
                 [0, 1, 0, 1, 0, 1, 0, 1],
@@ -140,126 +92,31 @@
                 [0, 3, 0, 3, 0, 3, 0, 3],
                 [3, 0, 3, 0, 3, 0, 3, 0]
             ];
-
-            this.canvas = canvas;
-            this.playWhite = playWhite;
-            this.code = code;
         }
-        
-        whitePlayer = 1;
-        redPlayer = 3;
-
-        clickedPiece: number[] = [];
 
         /**
-         * Check if the board actually has a piece of the given color on [x, y]
-         * @param white
-         * @param board
-         * @param [x, y]
+         * Transforms the coordinate into its 180 degree rotation
+         * @param coordinate Given coordinate
+         * @returns Transformed coordinate if the board was rotated 180 degrees
          */
-        validPiece(white = this.playWhite, board = this.board, [x, y]){
-            if (white){
-                return board[y][x] in [1, 2];
-            }
+        rotateCoord([x, y]){
+            return [7 - x, 7 - y];
+        }
 
-            return board[y][x] in [3, 4];
+        getBoard(){
+            return this.board;
+        }
+
+        setBoard(board: number[][]){
+            this.board = board;
         }
 
         /**
-         * Handle clicking a piece/cell on the canvas
-         * @param e - MouseEvent of the click event
-         */
-        click(e: MouseEvent){
-            const width = this.canvas.getWidth()/8, height = this.canvas.getHeight()/8;
-            let coordX = Math.floor((e.clientX - this.canvas.getX()) / width);
-            let coordY = Math.floor((e.clientY - this.canvas.getY()) / height);
-            console.log(e.clientX, e.clientY, this.canvas.getX(), this.canvas.getY(), coordX, coordY);
-            
-            if (!this.clickedPiece?.length){
-                let bd = this.board;
-                if (this.playWhite){
-                    bd = this.rotateBoard(bd);
-                }
-                if (this.validPiece(this.playWhite, bd, [coordX, coordY])){
-                    this.clickedPiece = [coordX, coordY];
-                    this.draw(this.clickedPiece);
-                }
-                return;
-            } 
-
-            socket.emit('move', {
-                code: this.code,
-                from: this.clickedPiece,
-                to: [coordX, coordY]
-            });
-        }
-        /**
-         * Render the board within the canvas
-         * @param (Optional) [x, y] - Clicked coordinate
+         * Rotate the given board 180 degrees
+         * @param originalBoard (optional) this.board by default, or given board
+         * @returns Rotated deep cloned 2d array of originalBoard
         */
-        draw([coordX, coordY]:number[] = []){
-            this.canvas.background([255]);
-            this.canvas.noStroke();
-            const width = this.canvas.getWidth()/8, height = this.canvas.getHeight()/8;
-
-            let bd = this.board;
-            if (this.playWhite){
-                bd = this.rotateBoard(bd);
-            }
-
-            let moveList: number[][] = [];
-
-            if (this.playWhite){
-                if (this.canTake()){
-                    moveList = this.validEat([coordX, coordY]);
-                } else {
-                    moveList = this.validMove([coordX, coordY]);
-                }
-            }
-
-            console.log(moveList);
-
-            // loops over each board cell
-            for (let i = 0; i < bd.length; i++){
-                for (let j = 0; j < bd[i].length; j++){
-                    // choose the board cell color on parity
-                    let color: [number, number, number] = [50, 50, 50];
-                    if ((i + j) % 2 == 0){
-                        color = [200, 200, 200];
-                    }
-                    this.canvas.fill(color);
-                    // draw the cell rectangle
-                    this.canvas.rect(j * width, i * height, width, height);
-                    if ([j, i] in moveList){
-                        this.canvas.fill([255, 255, 255]);
-                        this.canvas.circle(j * width + width/2, i * height + height/2, width/8);
-                    }
-
-                    // see if there is a piece on the cell
-                    let piece = bd[i][j];
-                    if (piece == 1 || piece == 2){
-                        this.canvas.fill([255, 255, 255]);
-                        // draw the corresponding piece as a circle
-                        this.canvas.circle(j * width + width/2, i * height + height/2, 3 * width/8);
-                    } else if (piece == 3 || piece == 4){
-                        this.canvas.fill([200, 0, 0]);
-                        this.canvas.circle(j * width + width/2, i * height + height/2, 3 * width/8);
-                    }
-
-                    if (piece == 2 || piece == 4){
-                        this.canvas.fill([], 0);
-                        this.canvas.stroke(0);
-                        this.canvas.circle(j * width + width/2, i * height + height/2, width/4);
-                    }
-                }
-            }
-        }
-        /**
-         * Rotate the board 180 degrees
-         * @param originalArray
-         * @returns rotated 2d array of this.board
-        */
-        rotateBoard(originalArray: number[][]){
+        rotateBoard(originalArray: number[][] = this.board){
             // Get the number of rows and columns in the original array
             const rows = originalArray.length;
             const cols = originalArray[0].length;
@@ -280,287 +137,335 @@
 
             return rotatedArray;
         }
-        
+
+        /**
+         * Check if the given coordinate is valid and contains a Piece of the given color
+         * @param isWhite Is the color white?
+         * @param coordinate Given coordinate
+         * @returns true if coordinate is valid and contains a piece of given color, false otherwise
+         */
+        validPiece(isWhite: boolean, [x, y]){
+            if (x < 0 || x > 7 || y < 0 || y > 7){
+                return false;
+            }
+
+            let piece = this.board[y][x];
+            if (isWhite){
+                return piece == 1 || piece == 2;
+            }
+
+            return piece == 3 || piece == 4;
+        }
+
+        /**
+         * Check if given coordinate contains nothing
+         * @param coordinate Given coordinate
+         * @returns true if coordinate is valid and contains empty space, otherwise false
+         */
+        isEmpty([x, y]){
+            if (x < 0 || x > 7 || y < 0 || y > 7){
+                return false;
+            }
+
+            return this.board[y][x] == 0;
+        }
+
+        /**
+         * Check if the given coordinate contains a King Piece
+         * @param coordinate Given coordinate
+         * @returns true if it contains a King, false otherwise
+         */
+        isKing([x, y]){
+            if (x < 0 || x > 7 || y < 0 || y > 7){
+                return false;
+            }
+
+            return this.board[y][x] == 2 || this.board[y][x] == 4;
+        }
+
+        /**
+         * Checks if a given piece at a coordinate can take any pieces, and returns those taking coordinates
+         * @param coordinate
+         * @returns Potentially empty array of possible taking coordinates of a piece
+        */
+        pieceCanTake([x, y]){
+            let takes: number[][] = [];
+
+            // check if valid piece
+            if (this.isEmpty([x, y])){
+                return takes;
+            }
+
+            let isWhite = (this.board[y][x] == 1 || this.board[y][x] == 2);
+
+            // which direction is up? if white then +1 to row and if red then -1 to row
+            let up = isWhite ? 1:-1;
+
+            if (this.validPiece(!isWhite, [x - 1, y + up]) && this.isEmpty([x - 2, y + 2 * up])){
+                // a diagonally adjacent opponent piece exists and can be taken
+                takes.push([x - 2, y + 2 * up]);
+            }
+            if (this.validPiece(!isWhite, [x + 1, y + up]) && this.isEmpty([x + 2, y + 2 * up])){
+                // a diagonally adjacent opponent piece exists and can be taken
+                takes.push([x + 2, y + 2 * up]);
+            }
+            if (this.isKing([x, y])){
+                // can move "down"
+                if (this.validPiece(!isWhite, [x - 1, y - up]) && this.isEmpty([x - 2, y - 2 * up])){
+                    // a diagonally adjacent opponent piece exists and can be taken
+                    takes.push([x - 2, y - 2 * up]);
+                }
+                if (this.validPiece(!isWhite, [x + 1, y - up]) && this.isEmpty([x + 2, y - 2 * up])){
+                    // a diagonally adjacent opponent piece exists and can be taken
+                    takes.push([x + 2, y - 2 * up]);
+                }
+            }
+
+            return takes;
+        }
+
         /**
          * Checks if player can take any pieces
          * @returns true or false
         */
-        canTake(){
+        canTake(isWhite: boolean){
             // loop throgh board
-            // check if row - 1, col +- 1 contains opponent piece
-            // and if row - 2, col +- 2 is 0
-            // if true, return true
-            
-            let opponent = 0
-            if (this.playWhite) {
-                opponent = 3
-            } else {
-                opponent = 1
-            }
+            // check if row - 1, col +- 1 exists and contains opponent piece
+            // and if row - 2, col +- 2 exists and is 0
+            // if true, then can take that piece return true
             for (let row = 0; row < this.board.length; row++) {
                 for (let col = 0; col < this.board[0].length; col++) {
-                    if (this.board[row][col] == 1 || this.board[row][col] == 3) {
-                        if (this.board[row - 1][col - 1] || this.board[row - 1][col + 1] == opponent) {
-                            if (this.board[row - 2][col - 2] || this.board[row - 2][col + 2] == 0) {
-                                return true
-                            }
-                        }
-                    }
-                    if (this.board[row][col] == 2 || this.board[row][col] == 4) {
-                        if (this.board[row + 1][col - 1] || this.board[row + 1][col + 1] == opponent) {
-                            if (this.board[row + 2][col - 2] || this.board[row + 2][col + 2] == 0) {
-                                return true
-                            }
+                    if (this.validPiece(isWhite, [col, row])) {
+                        // check if given piece can take
+                        if (this.pieceCanTake([col, row]).length > 0){
+                            return true;
                         }
                     }
                 }
             }
-            return false
+
+            // cannot take any piece
+            return false;
         }
 
         /**
-         * return array of valid positions where it can move
-         * @param player's piece
-         * @return array of all possible spots to move to
+         * Finds the possible coordinates a piece can move to
+         * @param coordinate of given piece
+         * @return array of all possible coordinates to move to
         */
-        validMove([x, y]){
+        pieceCanMove([x, y]){
             let possMoves: number[][] = [];
-            // case 1a: move diagonally forward, check if spot exists on board, add move to array
-            if (x > 0 && x < this.board.length) {
-                if (y > 0 && y < this.board[0].length) {
-                    if (this.board[x - 1][y - 1] === 0) {
-                        // add left diagonal to array
-                        possMoves.push([x - 1, y - 1]);
-                    }
-                }
-                if (y >= 0 && y < this.board[0].length - 2) {
-                    if (this.board[x - 1][y + 1] === 0) {
-                        // add right diagonal to array
-                        possMoves.push([x - 1, y + 1]);
-                    }
-                }
+
+            // check if valid piece
+            if (this.isEmpty([x, y])){
+                return possMoves;
             }
+
+            let isWhite = [1, 2].includes(this.board[y][x]);
+
+            // which direction is up? if white then +1 to row and if red then -1 to row
+            let up = isWhite ? 1:-1;
+
+            // case 1a: move diagonally up, check if spot exists on board, add move to array
+            if (this.isEmpty([x - 1, y + up])){
+                possMoves.push([x - 1, y + up]);
+            }
+            if (this.isEmpty([x + 1, y + up])){
+                possMoves.push([x + 1, y + up]);
+            }
+
             // case 1b: piece is king so can move diagonally backward, check if space is on board, add move to array
-            if (this.board[x][y] === 2 || this.board[x][y] === 4) {
-                if (x >= 0 && x < this.board.length - 2){
-                    if (y > 0 && y < this.board[0].length){
-                        if (this.board[x + 1][y - 1] === 0) {
-                            // add left back diagonal to array
-                            possMoves.push([x + 1, y - 1]);
-                        }
-                    }
-                    if (y >= 0 && y < this.board[0].length - 2) {
-                        if (this.board[x + 1][y + 1] === 0) {
-                            // add right back diagonal to array
-                            possMoves.push([x + 1, y + 1]);
-                        }
-                    }
+            if (this.isKing([x, y])) {
+                if (this.isEmpty([x - 1, y - up])){
+                    possMoves.push([x - 1, y - up]);
+                }
+                if (this.isEmpty([x + 1, y - up])){
+                    possMoves.push([x + 1, y - up]);
                 }
             }
+
             return possMoves;
         }
 
         /**
-         * return array of valid positions where it can move after eating
-         * @param player's piece
-         * @return array of all possible spots to move to after eating
+         * Finds the overall possible moves for a player and piece
+         * @param isWhite If the player is playing white or not
+         * @param coordinates of piece
+         * @return array of possible moves for a player and piece
+         */
+        piecePossMoves(isWhite: boolean, [x, y]){
+            if (!this.validPiece(isWhite, [x, y])){
+                return [];
+            }
+
+            // can take
+            if (this.canTake(isWhite)){
+                console.log('cantake')
+                // must take
+                return this.pieceCanTake([x, y]);
+            }
+            // cannot take, only move
+            return this.pieceCanMove([x, y]);
+        }
+    }
+
+    class Game {
+        checkers: Checkers;
+        canvas: EnhancedCanvas;
+        isWhite: boolean;
+        myTime: number;
+        oppTime: number;
+        isTurn: boolean;
+        turnTimestamp: number;
+        code: string;
+
+        constructor(canvas: EnhancedCanvas, isWhite: boolean, code: string, time: number){
+            // 0 is empty, 1 is white, 2 is white king, 3 is red, 4 is red king
+            this.checkers = new Checkers();
+            this.canvas = canvas;
+            this.isWhite = isWhite;
+            this.isTurn = !isWhite;
+            this.myTime = time;
+            this.oppTime = time;
+            this.turnTimestamp = Date.now();
+            this.code = code;
+        }
+
+        clickedPiece: number[] = [];
+
+        /**
+         * Handle clicking a piece/cell on the canvas
+         * @param e - MouseEvent of the click event
+         */
+        click(e: MouseEvent){
+            if (!this.isTurn){
+                return;
+            }
+
+            const width = this.canvas.getWidth()/8, height = this.canvas.getHeight()/8;
+            let coordX = Math.floor((e.clientX - this.canvas.getX()) / width);
+            let coordY = Math.floor((e.clientY - this.canvas.getY()) / height);
+            console.log("Click", e.clientX, e.clientY, this.canvas.getX(), this.canvas.getY(), coordX, coordY);
+
+            let [x, y] = this.isWhite ? this.checkers.rotateCoord([coordX, coordY]) : [coordX, coordY];
+
+            if (!this.clickedPiece?.length){
+                if (this.checkers.validPiece(this.isWhite, [x, y])){
+                    this.clickedPiece = [x, y];
+                    this.draw([coordX, coordY]);
+                }
+                return;
+            }
+
+            if (this.clickedPiece[0] == x && this.clickedPiece[1] == y){
+                this.clickedPiece = [];
+                this.draw();
+                return;
+            }
+
+            let possMoves = this.checkers.piecePossMoves(this.isWhite, this.clickedPiece as [number, number]);
+            if (possMoves.length && possMoves.some((el)=> {
+                return el[0] == x && el[1] == y;
+            })){
+                console.log("send", [x, y]);
+                socket.emit('move', {
+                    code: this.code,
+                    from: this.clickedPiece,
+                    to: [x, y]
+                });
+            }
+        }
+        /**
+         * Render the board within the canvas
+         * @param (Optional) coordinate - Clicked coordinate
         */
-        validEat([x,y]){
-            let possEats: number[][] = []; 
-            // case 2a: Remove your opponent’s checkers from the board if opponent’s checker is diagonal and there is an empty space to go
-            if (this.canTake()) { // if canTake returns true, must move piece and remove opponent's piece
-                // if it's white eating red
-                if (this.board[x][y] === 1 || this.board[x][y] === 2) {
-                    if (this.board[x - 1][y - 1] === 3 || this.board[x - 1][y - 1] === 4 || this.board[x - 1][y + 1] === 3 || this.board[x - 1][y + 1] === 4){
-                        if (x > 1 && x < this.board.length) {
-                            if (y > 1 && y < this.board[0].length) {
-                                if (this.board[x - 2][y - 2] === 0) {
-                                    // add left diagonal to array
-                                    possEats.push([x - 2, y - 2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 2) {
-                                if (this.board[x - 2][y + 2] === 0) {
-                                    // add right diagonal to array
-                                    possEats.push([x - 2, y + 2]);
-                                }
-                            }
-                        }
-                    }
-                }
-                // if it's red eating white
-                if (this.board[x][y] === 3 || this.board[x][y] === 4) {
-                    if (this.board[x - 1][y - 1] === 1 || this.board[x - 1][y - 1] === 2){
-                        if (x > 1 && x < this.board.length) {
-                            if (y > 1 && y < this.board[0].length) {
-                                if (this.board[x - 2][y - 2] === 0) {
-                                    // add left diagonal to array
-                                    possEats.push([x - 2, y - 2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 2) {
-                                if (this.board[x - 2][y + 2] === 0) {
-                                    // add right diagonal to array
-                                    possEats.push([x - 2, y + 2]);
-                                }
-                            }
-                        }
-                    }
-                }
-                // case 2b: king piece has backwards diagonal kill option
-                // if it's white king eating red
-                if (this.board[x][y] === 2) {
-                    if (this.board[x + 1][y - 1] === 3 || this.board[x + 1][y - 1] === 4 || this.board[x + 1][y +1 ] === 3 || this.board[x + 1][y + 1] === 4){
-                        if (x >= 0 && x < this.board.length - 3){
-                            if (y > 1 && y < this.board[0].length){
-                                if (this.board[x + 2][y - 2] === 0) {
-                                    // add left back diagonal to array
-                                    possEats.push([x + 2, y - 2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 3) {
-                                if (this.board[x + 2][y +2 ] === 0) {
-                                    // add right back diagonal to array
-                                    possEats.push([x + 2, y + 2]);
-                                }
-                            }
-                        }
-                    }
-                }
-                // if it's red king eating white
-                if (this.board[x][y] === 4) {
-                    if (this.board[x + 1][y - 1] === 1 || this.board[x + 1][y - 1] === 2 || this.board[x + 1][y + 1] === 1 || this.board[x + 1][y + 1] === 2){
-                        if (x >= 0 && x < this.board.length - 3){
-                            if (y > 1 && y < this.board[0].length){
-                                if (this.board[x + 2][y - 2] === 0) {
-                                    // add left back diagonal to array
-                                    possEats.push([x + 2, y - 2]);
-                                }
-                            }
-                            if (y >= 0 && y < this.board[0].length - 3) {
-                                if (this.board[x + 2][y + 2] === 0) {
-                                    // add right back diagonal to array
-                                    possEats.push([x + 2, y + 2]);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return possEats;
-        }
+        draw(coordinate:number[] = []){
+            let [coordX, coordY] = coordinate;
 
-        /**
-         * Move the piece selected to spot selected
-         * 
-         * If there is an option to eat, the player must eat, if more eating is possible it must make the move(s)
-         * Turn ends if piece is turned into a king
-         * 
-         * @param player's selected piece
-         * @param player's selected spot to move to
-         */ 
-        move([x1, y1], [x2, y2]) {
-            // if piece eats opponent's piece, check if another move can be made, then move
-            if (this.canTake()) {
-                for (let i = 0; i < this.validEat.length; i++) {
-                    if (this.validEat[i][0] === x2 && this.validEat[i][1] === y2) {
-                        let piece = this.board[x1][y1];
-                        this.board[x1][y1] = 0;
-                        if (x1 - x2 > 0) {
-                            if (y1 - y2 > 0) {
-                                this.board[x1 - 1][y1 - 1] = 0;
-                            }
-                            else {
-                                this.board[x1 - 1][y1 + 1] = 0;
-                            }
-                        }
-                        if (x1 - x2 < 0) {
-                            if (y1 - y2 > 0) {
-                                this.board[x1 + 1][y1 - 1] = 0;
-                            }
-                            else {
-                                this.board[x1 + 1][y1 + 1] = 0;
-                            }
-                        } 
-                        this.board[x2][y2] = piece;
-                        // if on furthest row switch to king
-                        if (x2 === 0) {
-                            this.makeKing([x2, y2]);
-                            return; //end move
-                        }
-                        // see if another jump is possible then move using recursion
-                        let possJumps = this.validEat([x2, y2]);
-                        if (possJumps.length > 0) { //possible lengths of 0 to 3
-                            for (let j = 0; j < possJumps.length; j++) {
-                                let x3;
-                                let y3;
-                                if (this.validEat[j][0] === x3 && this.validEat[j][1] === y3) {
-                                    this.move([x2, y2], [x3, y3]);
-                                }
-                            }
-                        }
+            this.canvas.background([255]);
+            this.canvas.noStroke();
+
+            const width = this.canvas.getWidth()/8, height = this.canvas.getHeight()/8;
+
+            let bd = this.isWhite ? this.checkers.rotateBoard():this.checkers.getBoard();
+
+            let moveList: number[][] = [];
+
+            if (coordinate.length){
+                let [x, y] = this.isWhite ? this.checkers.rotateCoord([coordX, coordY]) : [coordX, coordY];
+
+                if (this.checkers.canTake(this.isWhite)){
+                    moveList = this.checkers.pieceCanTake([x, y]);
+                } else {
+                    moveList = this.checkers.pieceCanMove([x, y]);
+                }
+
+                console.log(moveList);
+            }
+
+            // loops over each board cell
+            for (let i = 0; i < bd.length; i++){
+                for (let j = 0; j < bd[i].length; j++){
+                    // choose the board cell color on parity
+                    let color: [number, number, number] = [50, 50, 50];
+                    if ((i + j) % 2 == 0){
+                        color = [200, 200, 200];
+                    }
+                    if (coordinate.length && coordX == j && coordY == i){
+                        color = [100, 0, 0];
+                    }
+                    this.canvas.fill(color);
+                    // draw the cell rectangle
+                    this.canvas.rect(j * width, i * height, width, height);
+
+                    let coord = this.isWhite ? this.checkers.rotateCoord([j, i]) : [j, i];
+
+                    if (coordinate.length && moveList.some((el)=> {
+                        return el[0] == coord[0] && el[1] == coord[1];
+                    })){
+                        this.canvas.fill([100, 0, 0]);
+                        this.canvas.circle(j * width + width/2, i * height + height/2, width/8);
+                    }
+
+                    // see if there is a piece on the cell
+                    let piece = bd[i][j];
+                    if (piece == 1 || piece == 2){
+                        this.canvas.fill([255, 255, 255]);
+                        // draw the corresponding piece as a circle
+                        this.canvas.circle(j * width + width/2, i * height + height/2, 3 * width/8);
+                    } else if (piece == 3 || piece == 4){
+                        this.canvas.fill([200, 0, 0]);
+                        this.canvas.circle(j * width + width/2, i * height + height/2, 3 * width/8);
+                    }
+
+                    if (piece == 2 || piece == 4){
+                        this.canvas.fill([], 0);
+                        this.canvas.stroke(0);
+                        this.canvas.circle(j * width + width/2, i * height + height/2, width/4);
+                        this.canvas.noStroke();
                     }
                 }
-            }
-            /// check if move is valid, move piece if valid
-            else {
-                for (let i = 0; i < this.validMove.length; i++) {
-                    if (this.validMove[i][0] === x2 && this.validMove[i][1] === y2) {
-                        let piece = this.board[x1][y1];
-                        this.board[x1][y1] = 0;
-                        this.board[x2][y2] = piece;
-                        // if on furthest row switch to king
-                        if (x2 === 0) {
-                            this.makeKing([x2, y2]);
-                            return; //end move
-                        }
-                    }
-                    else {
-                        console.log("Move not valid. Please select another.");
-                    }
-                }
-            }
-        }
-        
-        /**
-         * Changes regular piece to king piece
-         * @param player's piece to switch
-         */ 
-        makeKing([x, y]) {
-            if (this.board[x][y] == 1 || this.board[x][y] == 3) {
-                this.board[x][y] += 1
             }
         }
 
-        /**
-         * Checks if someone has won the game and then ends the game
-         */ 
-        findWinner() {
-            let winner;
-            for (let row = 0; row < this.board.length; row++) {
-                for (let col = 0; col < this.board[0].length; col++) {
-                    // no white pieces left
-                    if (this.board[row][col] !== 1 && this.board[row][col] !== 2) {
-                        // END GAME, red has won
-                        winner = this.redPlayer;
-                        this.gameOver(winner);
-                    }
-                    // no red pieces left
-                    else if (this.board[row][col] !== 3 && this.board[row][col] !== 4) {
-                        // END GAME, white has won
-                        winner = this.whitePlayer;
-                        this.gameOver(winner);
-                    }
-                }
-            }
+        setBoard(board: number[][]){
+            this.checkers.setBoard(board);
+            this.draw();
         }
-        gameOver(isWinner) {
-            if(isWinner) {
-                console.log("Congratulations! You won!");
+
+        setTurn(turn: boolean){
+            this.clickedPiece = [];
+            let newTurn = (turn != this.isWhite);
+            if (this.isTurn != newTurn){
+                if (newTurn){
+                    this.oppTime -= (Date.now() - this.turnTimestamp);
+                } else {
+                    this.myTime -= (Date.now() - this.turnTimestamp);
+                }
+                this.turnTimestamp = Date.now();
             }
-            else {
-                console.log("Game Over. You lost.");
-            }
+
+            this.isTurn = newTurn;
         }
     }
 
@@ -581,16 +486,27 @@
             let canvasWidth = Math.min(canvas.clientWidth, canvas.clientHeight), canvasHeight = Math.min(canvas.clientWidth, canvas.clientHeight);
             enhancedCanvas.setHiPPICanvas(canvasWidth, canvasHeight);
 
-            game = new Game(enhancedCanvas, playWhite, code);
+            game = new Game(enhancedCanvas, playWhite, code, time);
             game.draw();
         }
     });
 
-    socket.on("update-move", ({})=> {
-
+    socket.on('update-game', ({board, turn})=> {
+        game.setTurn(turn);
+        game.setBoard(board);
     });
 
-    const handleClick = (e)=> {
+    let win = "";
+
+    socket.on('game-over', ({winner})=> {
+        if (winner == socket.id){
+            win = "You";
+        } else {
+            win = "Opponent";
+        }
+    });
+
+    const handleClick = (e: MouseEvent)=> {
         console.log(e);
         if (browser){
             game.click(e);
@@ -602,20 +518,45 @@
     <canvas style="width: 100%; height: clamp(128px, 60%, 1000px);" class="board" id="board" on:click={handleClick}> 
         Your browser does not support HTML5. Please use a modern browser like Firefox, Chrome or Edge.
     </canvas>
-    <aside class = "info-panel">
-        <div class = "time-panel">
-            30:00
-        </div>
-        <section class = "move-panel">
-            <div style = "font-weight: bold;">Moves</div>
-            <article>
-                fkdlajflsa
-            </article>
-        </section>
-        <div class = "time-panel">
-            30:00
-        </div>
-    </aside>
+    {#if game}
+        {#if game.isTurn}
+            <aside class = "info-panel">
+                <div class = "time-panel">
+                    {game.oppTime}
+                </div>
+                <section class = "move-panel">
+                    <article>
+                        {#if win}
+                            {"GGs, " + win + " won!"}
+                        {:else}
+                            {"Your turn to move!"}
+                        {/if}
+                    </article>
+                </section>
+                <div class = "time-panel">
+                    {game.myTime - Date.now() + game.turnTimestamp}
+                </div>
+            </aside>
+        {:else}
+            <aside class = "info-panel">
+                <div class = "time-panel">
+                    {game.oppTime - Date.now() + game.turnTimestamp}
+                </div>
+                <section class = "move-panel">
+                    <article>
+                        {#if win}
+                            {"GGs, " + win + " won!"}
+                        {:else}
+                            {"Opponent is thinking..."}
+                        {/if}
+                    </article>
+                </section>
+                <div class = "time-panel">
+                    {game.myTime}
+                </div>
+            </aside>
+        {/if}
+    {/if}
 </article>
 
 <style lang="scss">
