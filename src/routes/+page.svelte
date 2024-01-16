@@ -2,11 +2,11 @@
     import io from 'socket.io-client';
     import Home from './Home.svelte';
     import Game from './Game.svelte';
+    import { PUBLIC_SERVER_URL } from '$env/static/public';
 
     // Open WebSocket connection with the server to communicate moves
-    const socket = io(process.env.SERVER_URL ?? 'http://localhost:3000');
+    const socket = io(PUBLIC_SERVER_URL ?? 'http://localhost:3000');
     let socketId;
-
     socket.on("connect", ()=> {
         console.log(socket.id);
         socketId = socket.id;
