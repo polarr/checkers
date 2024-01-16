@@ -5,6 +5,56 @@
 
     export let socket: Socket;
     
+    let gameMessage = "";
+    let myTimer: number;
+    let myTimerString: string = "";
+    let myTimestamp: number;
+    let oppTimer: number;
+    let lastTimer: number;
+    let oppTimerString: string = "";
+    let oppTimestamp: number;
+    let myTimeout;
+    let oppTimeout;
+
+    let parseTime = (ms: number)=> {
+        ms = Math.max(ms, 0);
+        return Math.floor(ms / 60000).toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+        }) + ":" + Math.floor((ms % 60000)/1000).toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+        });
+    }
+
+    let updateMyTimer = (interval: number)=> {
+        myTimeout = setTimeout(()=> {
+            let diff = Date.now() - myTimestamp;
+            myTimestamp = Date.now();
+            myTimer -= diff;
+            if (myTimer < 0){
+                clearTimeout(myTimeout);
+                return;
+            }
+            myTimerString = parseTime(myTimer);
+            updateMyTimer(interval);
+        }, interval);
+    };
+
+    let updateOppTimer = (interval: number)=> {
+        oppTimeout = setTimeout(()=> {
+            let diff = Date.now() - oppTimestamp;
+            oppTimestamp = Date.now();
+            oppTimer -= diff;
+            if (oppTimer < 0){
+                clearTimeout(oppTimeout);
+                return;
+            }
+            oppTimerString = parseTime(oppTimer);
+            updateOppTimer(interval);
+        }, interval);
+    };
+
     // Enhanced Canvas API
     class EnhancedCanvas {
         canvas: HTMLCanvasElement;
@@ -313,10 +363,7 @@
         checkers: Checkers;
         canvas: EnhancedCanvas;
         isWhite: boolean;
-        myTime: number;
-        oppTime: number;
         isTurn: boolean;
-        turnTimestamp: number;
         code: string;
 
         constructor(canvas: EnhancedCanvas, isWhite: boolean, code: string, time: number){
@@ -325,9 +372,19 @@
             this.canvas = canvas;
             this.isWhite = isWhite;
             this.isTurn = !isWhite;
-            this.myTime = time;
-            this.oppTime = time;
-            this.turnTimestamp = Date.now();
+            myTimer = time;
+            oppTimer = time;
+            myTimestamp = Date.now();
+            oppTimestamp = Date.now();
+            myTimerString = parseTime(time);
+            oppTimerString = parseTime(time);
+            if (this.isTurn){
+                gameMessage = "Your turn to move!";
+                updateMyTimer(100);
+            } else {
+                gameMessage = "Opponent is thinking...";
+                updateOppTimer(100);
+            }
             this.code = code;
         }
 
@@ -457,12 +514,17 @@
             this.clickedPiece = [];
             let newTurn = (turn != this.isWhite);
             if (this.isTurn != newTurn){
+                myTimestamp = Date.now();
+                oppTimestamp = Date.now();
                 if (newTurn){
-                    this.oppTime -= (Date.now() - this.turnTimestamp);
+                    gameMessage = "Your turn to move!";
+                    clearTimeout(oppTimeout);
+                    updateMyTimer(100);
                 } else {
-                    this.myTime -= (Date.now() - this.turnTimestamp);
+                    gameMessage = "Opponent is thinking...";
+                    clearTimeout(myTimeout);
+                    updateOppTimer(100);
                 }
-                this.turnTimestamp = Date.now();
             }
 
             this.isTurn = newTurn;
@@ -499,6 +561,8 @@
     let win = "";
 
     socket.on('game-over', ({winner})=> {
+        clearTimeout(myTimeout);
+        clearTimeout(oppTimeout);
         if (winner == socket.id){
             win = "You";
         } else {
@@ -519,43 +583,23 @@
         Your browser does not support HTML5. Please use a modern browser like Firefox, Chrome or Edge.
     </canvas>
     {#if game}
-        {#if game.isTurn}
-            <aside class = "info-panel">
-                <div class = "time-panel">
-                    {game.oppTime}
-                </div>
-                <section class = "move-panel">
-                    <article>
-                        {#if win}
-                            {"GGs, " + win + " won!"}
-                        {:else}
-                            {"Your turn to move!"}
-                        {/if}
-                    </article>
-                </section>
-                <div class = "time-panel">
-                    {game.myTime - Date.now() + game.turnTimestamp}
-                </div>
-            </aside>
-        {:else}
-            <aside class = "info-panel">
-                <div class = "time-panel">
-                    {game.oppTime - Date.now() + game.turnTimestamp}
-                </div>
-                <section class = "move-panel">
-                    <article>
-                        {#if win}
-                            {"GGs, " + win + " won!"}
-                        {:else}
-                            {"Opponent is thinking..."}
-                        {/if}
-                    </article>
-                </section>
-                <div class = "time-panel">
-                    {game.myTime}
-                </div>
-            </aside>
-        {/if}
+        <aside class = "info-panel">
+            <div class = "time-panel">
+                {game.isWhite ? "RED":"WHITE"} {oppTimerString}
+            </div>
+            <section class = "move-panel">
+                <article>
+                    {#if win}
+                        {"GGs, " + win + " won!"}
+                    {:else}
+                        {gameMessage}
+                    {/if}
+                </article>
+            </section>
+            <div class = "time-panel">
+                {game.isWhite ? "WHITE":"RED"} {myTimerString}
+            </div>
+        </aside>     
     {/if}
 </article>
 
