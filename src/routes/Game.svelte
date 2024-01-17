@@ -6,6 +6,7 @@
     export let socket: Socket;
     
     let gameMessage = "";
+    let playerWhite = false;
     let myTimer: number;
     let myTimerString: string = "";
     let myTimestamp: number;
@@ -371,6 +372,7 @@
             this.checkers = new Checkers();
             this.canvas = canvas;
             this.isWhite = isWhite;
+            playerWhite = isWhite;
             this.isTurn = !isWhite;
             myTimer = time;
             oppTimer = time;
@@ -585,7 +587,7 @@
     {#if game}
         <aside class = "info-panel">
             <div class = "time-panel">
-                {game.isWhite ? "RED":"WHITE"} {oppTimerString}
+                {playerWhite ? "RED":"WHITE"} {oppTimerString}
             </div>
             <section class = "move-panel">
                 <article>
@@ -597,7 +599,7 @@
                 </article>
             </section>
             <div class = "time-panel">
-                {game.isWhite ? "WHITE":"RED"} {myTimerString}
+                {playerWhite ? "WHITE":"RED"} {myTimerString}
             </div>
         </aside>     
     {/if}
